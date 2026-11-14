@@ -1,6 +1,15 @@
 'use strict';
 const $=id=>document.getElementById(id), cats=['Görsel örüntü','Uzamsal algı','Sayısal mantık','Sözel mantık','Soyut sınıflandırma'], shapes=['▲','●','■','◆','✚','★','⬟','⬢'];
 let bank=[],test=[],answers=[],idx=0,chosen=-1,mode='fixed',level=2,start=0,timer=null,history=JSON.parse(localStorage.getItem('nq-history')||'[]');
+function polygonMarkup(sides,size=58){
+ const pts=[];for(let i=0;i<sides;i++){const angle=-Math.PI/2+(2*Math.PI*i/sides);pts.push((32+24*Math.cos(angle)).toFixed(1)+','+(32+24*Math.sin(angle)).toFixed(1))}
+ return '<svg class="geo-shape" width="'+size+'" height="'+size+'" viewBox="0 0 64 64" aria-label="'+sides+' köşeli şekil"><polygon points="'+pts.join(' ')+'" fill="rgba(88,166,255,.10)" stroke="#8fc5ff" stroke-width="2.8" stroke-linejoin="round"/></svg>';
+}
+function optionMarkup(q,x,i){
+ const letter=String.fromCharCode(65+i);
+ if(q.optionSides)return '<button class="option visual-option" onclick="choose('+i+')"><b>'+letter+'</b><span>'+polygonMarkup(Number(x),48)+'</span></button>';
+ return '<button class="option" onclick="choose('+i+')"><b>'+letter+'</b> '+x+'</button>';
+}
 const mix=a=>{a=[...a];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 function build(){
  let id=0;
@@ -22,16 +31,16 @@ function build(){
   const s=n+(d-1)*20;
   let q,opts,ans;
   if(c===0){
-   const start=(s*3+d)%8,template=n%4;
-   let steps;
-   if(template===0){const step=1+(s%3);steps=[step,step,step,step];}
-   else if(template===1){const a=1+(s%2),b=3+(s%2);steps=[a,b,a,b];}
-   else if(template===2){const a=1+(s%3);steps=[a,a+1,a+2,a+3];}
-   else {const step=1+(s%3);steps=[step,-step,step,-step];}
-   const vals=[start];for(let k=0;k<3;k++)vals.push((vals[k]+steps[k]+16)%8);
-   ans=shapes[(vals[3]+steps[3]+16)%8];
-   opts=makeOptions(ans,shapes.filter(x=>x!==ans));
-   q={v:vals.map((x,i)=>(i+1)+') '+shapes[x]).join('  →  ')+'  →  5) ?',a:ans,opts,ex:['Şekiller her adımda aynı sayıda ilerliyor.','İleri ve geri adımlar sırayla uygulanıyor.','İlerleme miktarı her adımda bir artıyor.','Şekiller sırayla ileri ve geri hareket ediyor.'][template]};
+   const template=n%4;
+   let base,steps;
+   if(template===0){base=3+(s%2);steps=[1,1,1,1];}
+   else if(template===1){base=8+(s%3);steps=[-1,-1,-1,-1];}
+   else if(template===2){base=3+(s%2);steps=[2,2,2,2];}
+   else {base=3+(s%2);steps=[1,2,1,2];}
+   const vals=[base];for(let k=0;k<4;k++)vals.push(vals[k]+steps[k]);
+   ans=String(vals[4]);
+   opts=makeOptions(ans,[ans-1,ans+1,ans-2,ans+2,ans-3,ans+3].filter(x=>x>=3&&x<=12));
+   q={v:'',a:ans,opts,visualSequence:vals.slice(0,4),optionSides:true,ex:['Her adımda köşe sayısı 1 artıyor.','Her adımda köşe sayısı 1 azalıyor.','Her adımda köşe sayısı 2 artıyor.','Köşe sayısı sırayla 1 ve 2 artıyor.'][template]};
   }else if(c===1){
    const from=(s+d)%4,template=n%4;
    let turns;
@@ -97,7 +106,14 @@ function startTest(m){
  timer=setInterval(()=>{let s=Math.floor((Date.now()-start)/1000);$('clock').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')},1000);
  render();
 }
-function render(){let q=test[idx];chosen=-1;$('qnum').textContent='SORU '+(idx+1)+' / 20';$('progress').style.width=(idx/20*100)+'%';$('cat').textContent=cats[q.c];$('diff').textContent=['','BAŞLANGIÇ','KOLAY','ORTA','ZOR','UZMAN'][q.d];$('question').textContent=['Soldan sağa ilerleyen şekil dizisinde 5. sıraya hangi şekil gelmeli?','Dönüş kuralına göre sonraki yönü seç.','Sayı dizisindeki eksik değeri bul.','İlişkiyi aynı mantıkla tamamla.','Farklı olan şeklin numarasını seç.'][q.c];$('visual').textContent=q.v;$('options').innerHTML=q.opts.map((x,i)=>'<button class="option" onclick="choose('+i+')"><b>'+String.fromCharCode(65+i)+'</b> '+x+'</button>').join('');$('next').disabled=true;$('next').textContent=idx===19?'TESTİ BİTİR':'CEVABI ONAYLA'}
+function render(){
+ let q=test[idx];chosen=-1;$('qnum').textContent='SORU '+(idx+1)+' / 20';$('progress').style.width=(idx/20*100)+'%';$('cat').textContent=cats[q.c];$('diff').textContent=['','BAŞLANGIÇ','KOLAY','ORTA','ZOR','UZMAN'][q.d];
+ $('question').textContent=q.c===0?'Şekil dizisinde köşe sayısındaki değişimi incele. Sıradaki şekil hangisi?':['Dönüş kuralına göre sonraki yönü seç.','Sayı dizisindeki eksik değeri bul.','İlişkiyi aynı mantıkla tamamla.','Farklı olan şeklin numarasını seç.'][q.c-1];
+ if(q.visualSequence){
+  $('visual').innerHTML='<div class="shape-sequence">'+q.visualSequence.map((n,i)=>'<div class="shape-step">'+polygonMarkup(n,54)+'<small>'+(i+1)+'.</small></div>').join('<span class="shape-arrow">→</span>')+'<span class="shape-missing">?</span></div>';
+ }else{$('visual').textContent=q.v}
+ $('options').innerHTML=q.opts.map((x,i)=>optionMarkup(q,x,i)).join('');$('next').disabled=true;$('next').textContent=idx===19?'TESTİ BİTİR':'CEVABI ONAYLA';
+}
 function choose(i){if(chosen!==-1)return;if(!test[idx]||!test[idx].opts||i<0||i>=test[idx].opts.length)return;chosen=i;document.querySelectorAll('.option').forEach((b,j)=>{b.classList.toggle('selected',i===j);b.disabled=true});next()}
 function next(){if(chosen<0)return;let q=test[idx],ok=q.opts[chosen]===q.a;answers.push({c:q.c,ok});let seen=new Set(JSON.parse(localStorage.getItem('nq-seen')||'[]'));seen.add(q.id);localStorage.setItem('nq-seen',JSON.stringify([...seen]));if(mode==='adaptive')level=Math.max(1,Math.min(5,level+(ok?1:-1)));idx++;if(idx===20)finish();else render()}
 function finish(){clearInterval(timer);let n=answers.filter(x=>x.ok).length,secs=Math.floor((Date.now()-start)/1000),score=n*5;$('score').textContent=score;$('scoreSmall').textContent=score;$('iqRank').textContent=iqRank(score);$('iqMarker').style.left=score+'%';$('correct').textContent=n+'/20';$('duration').textContent=Math.floor(secs/60)+' dk '+secs%60+' sn';$('analysis').innerHTML=cats.map((c,i)=>'<p>'+c+' <b>'+answers.filter(x=>x.c===i&&x.ok).length+'/4</b></p>').join('');$('feedback').textContent=iqComment(score)+' Bu endeks yalnızca bu testteki performansını gösterir; bilimsel IQ puanı veya zekâ tanısı değildir.';history.unshift({score,rank:iqRank(score),date:new Date().toLocaleDateString('tr-TR')});history=history.slice(0,50);localStorage.setItem('nq-history',JSON.stringify(history));show('result')}

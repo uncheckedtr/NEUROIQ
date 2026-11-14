@@ -93,7 +93,7 @@ function show(name){['home','quiz','result','history'].forEach(x=>$(x).classList
 function toIQ(score){return Math.round(70+(score/100)*60)}
 function iqRank(iq){if(iq<85)return 'Ortalamanın altında';if(iq<115)return 'Ortalama aralığı';if(iq<130)return 'Ortalamanın üstünde';return 'Çok yüksek aralık'}
 function iqComment(score){if(score<20)return 'Bugün beyin biraz tasarruf modunda. Sorun değil, en iyi fikirler bazen geç açılır.';if(score<40)return 'Mantık motoru çalışıyor; sadece vites henüz büyütülmemiş. Bir tur daha denemeye değer.';if(score<60)return 'Gayet dengeli! Beyin görevini yaptı, kahve molasını da hak etti.';if(score<80)return 'Güzel performans. Nöronlar toplantıyı yapmış, kararları da zamanında almış.';return 'Tebrikler! Bugün beyin mesaiye erken başlamış, çıkış saatini de unutmuş.'}
-function updateHistory(){ $('recent').innerHTML=history.slice(0,3).map(x=>'<p>NEUROIQ '+(x.iq||toIQ(x.score))+' · '+(x.rank||iqRank(x.iq||toIQ(x.score)))+' · '+x.date+'</p>').join('')||'Henüz test yok.'}
+function updateHistory(){ $('recent').innerHTML=history.slice(0,3).map(x=>'<p>NEUROIQ '+(x.iq||toIQ(x.score))+' · '+iqRank(x.iq||toIQ(x.score))+' · '+x.date+'</p>').join('')||'Henüz test yok.'}
 function home(){clearInterval(timer);show('home');updateHistory()}
 function startTest(m){
  mode=m;level=2;idx=0;answers=[];

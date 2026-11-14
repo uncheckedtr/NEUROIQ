@@ -11,7 +11,8 @@ function polygonMarkup(sides,size=58){
 }
 function optionMarkup(q,x,i){
  const letter=String.fromCharCode(65+i);
- if(q.optionSides)return '<button class="option visual-option" onclick="choose('+i+')"><b>'+letter+'</b><span>'+polygonMarkup(Number(x),48)+'</span></button>';\n if(q.optionDots)return '<button class="option visual-option" onclick="choose('+i+')"><b>'+letter+'</b><span>'+dotsMarkup(Number(x),50)+'</span></button>';
+ if(q.optionSides)return '<button class="option visual-option" onclick="choose('+i+')"><b>'+letter+'</b><span>'+polygonMarkup(Number(x),48)+'</span></button>';
+ if(q.optionDots)return '<button class="option visual-option" onclick="choose('+i+')"><b>'+letter+'</b><span>'+dotsMarkup(Number(x),50)+'</span></button>';
  return '<button class="option" onclick="choose('+i+')"><b>'+letter+'</b> '+x+'</button>';
 }
 const mix=a=>{a=[...a];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};

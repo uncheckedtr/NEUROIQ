@@ -22,3 +22,5 @@ function finish(){clearInterval(timer);let n=answers.filter(x=>x.ok).length,secs
 function quit(){if(confirm('Testten çıkmak istiyor musun?'))home()}
 function showHistory(){show('history');$('historyList').innerHTML=history.map(x=>'<p>'+x.score+'/100 · IQ endeksi '+(x.rank||iqRank(x.score))+' · '+x.date+'</p>').join('')||'Kayıt yok.'}
 build();$('count').textContent=bank.length+' SORU';updateHistory();
+// Inline HTML controls are explicitly exposed for mobile browsers.
+window.startTest=startTest;window.choose=choose;window.next=next;window.quit=quit;window.home=home;window.showHistory=showHistory;

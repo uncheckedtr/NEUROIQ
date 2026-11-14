@@ -26,7 +26,7 @@ function build(){
  };
  const numberOptions=a=>makeOptions(String(a),[a-1,a+1,a-2,a+2,a-3,a+3,a*2,Math.round(a*1.5)].filter(x=>Number.isFinite(x)&&x>=0&&x!==a));
  const patterns=[[1,1,1,1],[2,2,2,2],[3,3,3,3],[-1,-1,-1,-1],[-2,-2,-2,-2],[-3,-3,-3,-3],[1,2,1,2],[2,1,2,1],[1,3,1,3],[3,1,3,1],[2,3,2,3],[3,2,3,2],[-1,-2,-1,-2],[-2,-1,-2,-1],[-1,-3,-1,-3],[-3,-1,-3,-1],[-2,-3,-2,-3],[-3,-2,-3,-2],[1,2,3,4],[4,3,2,1],[1,1,2,2],[1,2,2,1],[2,1,1,2],[2,2,1,1],[1,3,2,1],[3,1,2,1],[-1,-1,-2,-2],[-1,-2,-2,-1],[-2,-1,-1,-2],[-2,-2,-1,-1],[-1,-3,-2,-1],[-3,-1,-2,-1],[1,2,3,1],[2,3,1,2],[3,1,2,3],[1,3,2,3],[3,2,1,2],[2,1,3,2],[-1,-2,-3,-1],[-2,-3,-1,-2],[-3,-1,-2,-3],[-1,-3,-2,-3],[-3,-2,-1,-2],[-2,-1,-3,-2]];
- const makePool=(min,max)=>{const pool=[];for(const st of patterns)for(let base=min;base<=max;base++){const vals=[base];for(const step of st)vals.push(vals[vals.length-1]+step);if(vals.every(x=>x>=min&&x<=max))pool.push({vals,steps:st})}return pool};
+ const makePool=(min,max)=>{const pool=[],seen=new Set();for(const st of patterns)for(let base=min;base<=max;base++){const vals=[base];for(const step of st)vals.push(vals[vals.length-1]+step);const key=vals.slice(0,4).join(',');if(vals.every(x=>x>=min&&x<=max)&&!seen.has(key)){seen.add(key);pool.push({vals,steps:st})}}return pool};
  const polyPool=makePool(3,12),dotPool=makePool(1,12);
  if(polyPool.length<100||dotPool.length<100)throw new Error('Görsel soru havuzu yetersiz.');
  const analogy=[
@@ -55,6 +55,16 @@ function build(){
   ['Bir meyve olgunlaştığında rengi değişebilir. Bu meyvenin olgunlaştığı biliniyor.','Rengi değişmiş olabilir.',['Kesinlikle çürümüştür.','Hiç değişmemiştir.','Yenmesi imkânsızdır.']],
   ['Bir binaya girmek için güvenlik kontrolünden geçmek zorunludur. Duru binaya girdi.','Duru güvenlik kontrolünden geçmiştir.',['Duru binanın sahibidir.','Bina boşaltılmıştır.','Duru kontrolü yapmıştır.']],
   ['Bir kitap ödünç alınmışsa kütüphane kaydında görünür. Bu kitap ödünç alınmıştır.','Kitap kütüphane kaydında görünür.',['Kitap kaybolmuştur.','Kitap satılmıştır.','Kitap hiç kaydedilmemiştir.']]
+  ,['Bir alarm çalarsa ders başlar. Alarm çalıyor.','Ders başlar.',['Ders iptal olur.','Alarm hiç çalmadı.','Okul kapanır.']],
+  ['Bir tren gecikirse varış saati ertelenir. Tren gecikti.','Varış saati ertelenir.',['Tren erkenden gelir.','Yolculuk iptal olur.','Tren hiç hareket etmez.']],
+  ['Sıfırın altındaki sıcaklıkta su donar. Hava sıcaklığı sıfırın altında.','Su donar.',['Su kaynar.','Hava mutlaka güneşlidir.','Sıcaklık sıfırın üstündedir.']],
+  ['Bir öğrenci ödevini teslim ederse öğretmen ödevi kontrol eder. Öğrenci ödevini teslim etti.','Öğretmen ödevi kontrol eder.',['Öğrenci okula gitmedi.','Ödev hiç verilmedi.','Öğretmen izinlidir.']],
+  ['Bir otobüs son durağa ulaştığında yolcular inebilir. Otobüs son durağa ulaştı.','Yolcular inebilir.',['Otobüs ilk durağa döner.','Yolcular binemez.','Otobüs hareket etmez.']],
+  ['Bir bilet geçerliyse yolcu uçağa binebilir. Bilet geçerli.','Yolcu uçağa binebilir.',['Uçak iptal edilmiştir.','Bilet geçersizdir.','Yolcu uçağı kullanır.']],
+  ['Bir mağaza kapalıysa müşteriler alışveriş yapamaz. Mağaza kapalı.','Müşteriler alışveriş yapamaz.',['Mağaza açıktır.','Müşteriler alışveriş yapar.','Ürünler ücretsizdir.']],
+  ['Bir telefonun şarjı biterse kapanır. Telefonun şarjı bitti.','Telefon kapanır.',['Telefon şarj olmuştur.','Telefon yeni alınmıştır.','Telefonun ekranı büyür.']],
+  ['Bir kişi yüzme bilmiyorsa derin havuza tek başına girmemelidir. Can yüzme bilmiyor.','Can derin havuza tek başına girmemelidir.',['Can mutlaka yüzme biliyordur.','Havuz boş olmalıdır.','Can havuzu temizlemelidir.']],
+  ['Bir dosya kaydedilirse bilgisayarda saklanır. Dosya kaydedildi.','Dosya bilgisayarda saklanır.',['Dosya silinmiştir.','Bilgisayar kapalıdır.','Dosya yazdırılmıştır.']]
  ];
  const schedules=[
   ['kütüphane ziyareti','sinema','akşam yemeği'],['kahvaltı','alışveriş','film izleme'],['toplantı','öğle yemeği','spor'],['ders','ödev','oyun'],['otobüs yolculuğu','otele giriş','akşam yemeği'],
@@ -80,7 +90,7 @@ function build(){
    q={prompt:'Her karttaki noktaları say. Aynı değişim sürerse sonraki kartta kaç nokta olmalı?',v:'',a:ans,opts,visualCounts:v.slice(0,4),optionDots:true,ex:'Kartlardaki nokta sayıları arasındaki farkları karşılaştır.'};
   }else if(c===2){
    const t=s%10,v=Math.floor(s/10);let vals;
-   if(t===0){const base=3+v*2,step=2+(v%4);vals=[base,base+step,base+2*step,base+3*step];ans=base+4*step}
+   if(t===0){const base=3+v*2,step=2+v;vals=[base,base+step,base+2*step,base+3*step];ans=base+4*step}
    else if(t===1){const base=90+v*3,step=2+(v%4);vals=[base,base-step,base-2*step,base-3*step];ans=base-4*step}
    else if(t===2){const base=5+v*2,a=1+(v%3),b=3+(v%4);vals=[base,base+a,base+a+b,base+2*a+b];ans=base+2*a+2*b}
    else if(t===3){const base=2+v;vals=[base,base*2,base*4,base*8];ans=base*16}
@@ -100,7 +110,7 @@ function build(){
   }else{
    const t=s%5,v=Math.floor(s/5);
    if(t===0){
-    const a=names[(v*3)%names.length],b=names[(v*3+7)%names.length],z=names[(v*3+13)%names.length],oldest=v%2===1;
+    const a=names[v],b=names[(v+7)%names.length],z=names[(v+13)%names.length],oldest=v%2===1;
     ans=oldest?a:z;const statement=a+' , '+b+'’den daha yaşlıdır. '+b+' de '+z+'’den daha yaşlıdır.';
     opts=makeOptions(ans,[a,b,z,'Kesin olarak belirlenemez']);
     q={prompt:oldest?'En yaşlı kimdir?':'En genç kimdir?',v:statement,a:ans,opts,ex:'Yaş sırası büyükten küçüğe '+a+', '+b+', '+z+' şeklindedir.'};
@@ -108,7 +118,7 @@ function build(){
     const g=inclusions[v];ans=g[2];opts=makeOptions(ans,[g[1],'eşya','canlı','madde'].filter(x=>x!==ans));
     q={prompt:'Verilen iki bilgiye göre ilk gruptakiler kesinlikle hangi gruba dahildir?',v:'Bütün '+g[0]+'lar '+g[1]+'dır.\nBütün '+g[1]+'lar '+g[2]+'dır.\n'+g[0]+'lar hangi gruptadır?',a:ans,opts,ex:'İlk grup ikinci grubun, ikinci grup da üçüncü grubun içindedir.'};
    }else if(t===2){
-    const item=conditionals[v%conditionals.length];ans=item[1];opts=makeOptions(ans,item[2]);
+    const item=conditionals[v];ans=item[1];opts=makeOptions(ans,item[2]);
     q={prompt:'Verilen bilgiye göre kesin olarak hangi sonuç çıkar?',v:item[0],a:ans,opts,ex:'Verilen koşulu ve gerçekleşen durumu birlikte değerlendir.'};
    }else if(t===3){
     const x=schedules[v];ans=x[2];opts=makeOptions(ans,[x[0],x[1],'Sıralama belirlenemez']);

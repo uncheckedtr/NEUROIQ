@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id), cats=['Geometrik örüntü','Görsel miktar','Sayısal mantık','Sözel ilişki','Mantık yürütme'], shapes=['▲','●','■','◆','✚','★','⬟','⬢'];
-let bank=[],test=[],answers=[],idx=0,chosen=-1,mode='fixed',level=2,start=0,timer=null,history=JSON.parse(localStorage.getItem('nq-history')||'[]');
+let bank=[],test=[],answers=[],idx=0,chosen=-1,mode='fixed',level=2,start=0,timer=null,questionPicker=null,history=JSON.parse(localStorage.getItem('nq-history')||'[]');
 function dotsMarkup(count,size=54){
  let dots='';for(let i=0;i<count;i++)dots+='<i></i>';
  return '<span class="dot-card" style="width:'+size+'px;min-height:'+size+'px"><span class="dot-grid">'+dots+'</span></span>';
@@ -149,23 +149,28 @@ function build(){
  }
 }
 function show(name){['home','quiz','result','history'].forEach(x=>$(x).classList.toggle('hidden',x!==name))}
-function toIQ(score){return Math.round(70+(score/100)*60)}
-function iqRank(iq){if(iq<85)return 'Ortalamanın altında';if(iq<115)return 'Ortalama aralığı';if(iq<130)return 'Ortalamanın üstünde';return 'Çok yüksek aralık'}
+function toIQ(score){return Math.max(50,Math.min(150,Math.round(50+score)))}
+function iqRank(iq){if(iq<70)return 'Başlangıç aralığı';if(iq<85)return 'Ortalama altı';if(iq<115)return 'Ortalama aralığı';if(iq<130)return 'Ortalama üstü';if(iq<145)return 'Yüksek';return 'Çok yüksek'}
+history=history.map(x=>{const iq=toIQ(Number(x.score)||0);return {...x,iq,rank:iqRank(iq)}});localStorage.setItem('nq-history',JSON.stringify(history));
 function iqComment(score){if(score<20)return 'Bugün beyin biraz tasarruf modunda. Sorun değil, en iyi fikirler bazen geç açılır.';if(score<40)return 'Mantık motoru çalışıyor; sadece vites henüz büyütülmemiş. Bir tur daha denemeye değer.';if(score<60)return 'Gayet dengeli! Beyin görevini yaptı, kahve molasını da hak etti.';if(score<80)return 'Güzel performans. Nöronlar toplantıyı yapmış, kararları da zamanında almış.';return 'Tebrikler! Bugün beyin mesaiye erken başlamış, çıkış saatini de unutmuş.'}
 function updateHistory(){ $('recent').innerHTML=history.slice(0,3).map(x=>'<p>NEUROIQ '+(x.iq||toIQ(x.score))+' · '+iqRank(x.iq||toIQ(x.score))+' · '+x.date+'</p>').join('')||'Henüz test yok.'}
 function home(){clearInterval(timer);show('home');updateHistory()}
 function startTest(m){
- mode=m;level=2;idx=0;answers=[];
+ mode=m;level=3;idx=0;answers=[];
  const seen=new Set(JSON.parse(localStorage.getItem('nq-seen-v3')||'[]'));
  const used=new Set();test=[];
- for(let i=0;i<20;i++){
-  const c=i%5,d=mode==='fixed'?Math.ceil((i+1)/4):level;
+ questionPicker=(c,d)=>{
   let options=bank.filter(q=>q.c===c&&q.d===d&&!seen.has(q.id)&&!used.has(q.id));
-  if(!options.length)options=bank.filter(q=>q.c===c&&!seen.has(q.id)&&!used.has(q.id));
+  if(!options.length)options=bank.filter(q=>q.c===c&&Math.abs(q.d-d)<=1&&!seen.has(q.id)&&!used.has(q.id));
   if(!options.length)options=bank.filter(q=>q.c===c&&!used.has(q.id));
   const q=mix(options)[0];
   if(!q)throw new Error('Bu test için benzersiz soru bulunamadı.');
-  test.push(q);used.add(q.id);
+  used.add(q.id);return q;
+ };
+ const total=mode==='fixed'?20:1;
+ for(let i=0;i<total;i++){
+  const c=i%5,d=mode==='fixed'?Math.min(5,Math.ceil((i+1)/4)+1):level;
+  test.push(questionPicker(c,d));
  }
  start=Date.now();$('mode').textContent=m==='fixed'?'SABİT TEST':'ADAPTİF TEST';show('quiz');
  timer=setInterval(()=>{let s=Math.floor((Date.now()-start)/1000);$('clock').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')},1000);
@@ -182,8 +187,8 @@ function render(){
  $('options').innerHTML=q.opts.map((x,i)=>optionMarkup(q,x,i)).join('');$('next').disabled=true;$('next').textContent=idx===19?'TESTİ BİTİR':'CEVABI ONAYLA';
 }
 function choose(i){if(chosen!==-1)return;if(!test[idx]||!test[idx].opts||i<0||i>=test[idx].opts.length)return;chosen=i;document.querySelectorAll('.option').forEach((b,j)=>{b.classList.toggle('selected',i===j);b.disabled=true});next()}
-function next(){if(chosen<0)return;let q=test[idx],ok=q.opts[chosen]===q.a;answers.push({c:q.c,ok});let seen=new Set(JSON.parse(localStorage.getItem('nq-seen-v3')||'[]'));seen.add(q.id);localStorage.setItem('nq-seen-v3',JSON.stringify([...seen]));if(mode==='adaptive')level=Math.max(1,Math.min(5,level+(ok?1:-1)));idx++;if(idx===20)finish();else render()}
-function finish(){clearInterval(timer);let n=answers.filter(x=>x.ok).length,secs=Math.floor((Date.now()-start)/1000),score=n*5,iq=toIQ(score);$('score').textContent=iq;$('scoreSmall').textContent=score+'%';$('iqRank').textContent=iqRank(iq);$('iqMarker').style.left=((iq-70)/60*100)+'%';$('correct').textContent=n+'/20';$('duration').textContent=Math.floor(secs/60)+' dk '+secs%60+' sn';$('analysis').innerHTML=cats.map((c,i)=>'<p>'+c+' <b>'+answers.filter(x=>x.c===i&&x.ok).length+'/4</b></p>').join('');$('feedback').textContent=iqComment(score)+' Gösterilen değer, 70–130 aralığına ölçeklenmiş deneysel NEUROIQ endeksidir; standartlaştırılmış veya klinik IQ puanı değildir.';history.unshift({score,iq,rank:iqRank(iq),date:new Date().toLocaleDateString('tr-TR')});history=history.slice(0,50);localStorage.setItem('nq-history',JSON.stringify(history));show('result')}
+function next(){if(chosen<0)return;let q=test[idx],ok=q.opts[chosen]===q.a;answers.push({c:q.c,ok});let seen=new Set(JSON.parse(localStorage.getItem('nq-seen-v3')||'[]'));seen.add(q.id);localStorage.setItem('nq-seen-v3',JSON.stringify([...seen]));if(mode==='adaptive'){level=Math.max(2,Math.min(5,level+(ok?1:-1)));if(idx+1<20)test.push(questionPicker((idx+1)%5,level))}idx++;if(idx===20)finish();else render()}
+function finish(){clearInterval(timer);let n=answers.filter(x=>x.ok).length,secs=Math.floor((Date.now()-start)/1000),score=n*5,iq=toIQ(score);$('score').textContent=iq;$('scoreSmall').textContent=score+'%';$('iqRank').textContent=iqRank(iq);$('iqMarker').style.left=((iq-50)/100*100)+'%';$('correct').textContent=n+'/20';$('duration').textContent=Math.floor(secs/60)+' dk '+secs%60+' sn';$('analysis').innerHTML=cats.map((c,i)=>'<p>'+c+' <b>'+answers.filter(x=>x.c===i&&x.ok).length+'/4</b></p>').join('');$('feedback').textContent=iqComment(score)+' Gösterilen değer, 50–150 aralığında deneysel NEUROIQ performans endeksidir; standartlaştırılmış veya klinik IQ puanı değildir.';history.unshift({score,iq,rank:iqRank(iq),date:new Date().toLocaleDateString('tr-TR')});history=history.slice(0,50);localStorage.setItem('nq-history',JSON.stringify(history));show('result')}
 function quit(){if(confirm('Testten çıkmak istiyor musun?'))home()}
 function showHistory(){show('history');$('historyList').innerHTML=history.map(x=>'<p>NEUROIQ '+(x.iq||toIQ(x.score))+' · '+(x.rank||iqRank(x.iq||toIQ(x.score)))+' · '+x.date+'</p>').join('')||'Kayıt yok.'}
 build();$('count').textContent=bank.length+' SORU';updateHistory();

@@ -169,7 +169,7 @@ function startTest(m){
  };
  const total=mode==='fixed'?20:1;
  for(let i=0;i<total;i++){
-  const c=i%5,d=mode==='fixed'?Math.min(5,Math.ceil((i+1)/4)+1):level;
+  const c=i%5,d=mode==='fixed'?Math.min(5,Math.ceil((i+1)/5)+1):level;
   test.push(questionPicker(c,d));
  }
  start=Date.now();$('mode').textContent=m==='fixed'?'SABİT TEST':'ADAPTİF TEST';show('quiz');

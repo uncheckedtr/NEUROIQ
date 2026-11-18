@@ -19,10 +19,17 @@ const mix=a=>{a=[...a];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.rando
 function build(){
  let id=0;
  const makeOptions=(answer,others)=>{
-  const out=[String(answer)];
-  for(const x of mix(others.map(String)))if(!out.includes(x)){out.push(x);if(out.length===4)break}
-  for(const x of ['Bilinmiyor','Hiçbiri','Yukarıdakilerden hiçbiri'])if(out.length<4&&!out.includes(x)&&String(answer)!==x)out.push(x);
+  const correct=String(answer),out=[correct];
+  for(const raw of mix(others.map(String))){
+   const x=String(raw).trim();
+   if(x&&x!==correct&&!out.includes(x)){out.push(x);if(out.length===4)break}
+  }
+  if(out.length!==4)throw new Error('Dört geçerli şık üretilemedi: '+correct+' / '+out.length);
   return mix(out);
+ };
+ const visualOptions=(answer,min,max)=>{
+  const correct=String(answer);
+  return makeOptions(correct,Array.from({length:max-min+1},(_,i)=>String(min+i)).filter(x=>x!==correct));
  };
  const numberOptions=a=>makeOptions(String(a),[a-1,a+1,a-2,a+2,a-3,a+3,a*2,Math.round(a*1.5)].filter(x=>Number.isFinite(x)&&x>=0&&x!==a));
  const patterns=[[1,1,1,1],[2,2,2,2],[3,3,3,3],[-1,-1,-1,-1],[-2,-2,-2,-2],[-3,-3,-3,-3],[1,2,1,2],[2,1,2,1],[1,3,1,3],[3,1,3,1],[2,3,2,3],[3,2,3,2],[-1,-2,-1,-2],[-2,-1,-2,-1],[-1,-3,-1,-3],[-3,-1,-3,-1],[-2,-3,-2,-3],[-3,-2,-3,-2],[1,2,3,4],[4,3,2,1],[1,1,2,2],[1,2,2,1],[2,1,1,2],[2,2,1,1],[1,3,2,1],[3,1,2,1],[-1,-1,-2,-2],[-1,-2,-2,-1],[-2,-1,-1,-2],[-2,-2,-1,-1],[-1,-3,-2,-1],[-3,-1,-2,-1],[1,2,3,1],[2,3,1,2],[3,1,2,3],[1,3,2,3],[3,2,1,2],[2,1,3,2],[-1,-2,-3,-1],[-2,-3,-1,-2],[-3,-1,-2,-3],[-1,-3,-2,-3],[-3,-2,-1,-2],[-2,-1,-3,-2]];
@@ -82,11 +89,11 @@ function build(){
   const s=(d-1)*20+n;let q,opts,ans;
   if(c===0){
    const item=polyPool[s],v=item.vals;ans=String(v[4]);
-   opts=makeOptions(ans,[ans-1,ans+1,ans-2,ans+2,ans-3,ans+3].filter(x=>x>=3&&x<=12));
+   opts=visualOptions(ans,3,12);
    q={prompt:'Her şeklin köşe sayısını incele. Aynı değişim sürerse sıradaki şekil kaç köşeli olur?',v:'',a:ans,opts,visualSequence:v.slice(0,4),optionSides:true,ex:'Köşe sayıları arasındaki farkları karşılaştır.'};
   }else if(c===1){
    const item=dotPool[s],v=item.vals;ans=String(v[4]);
-   opts=makeOptions(ans,[ans-2,ans-1,ans+1,ans+2,ans+3].filter(x=>x>=1&&x<=12));
+   opts=visualOptions(ans,1,12);
    q={prompt:'Her karttaki noktaları say. Aynı değişim sürerse sonraki kartta kaç nokta olmalı?',v:'',a:ans,opts,visualCounts:v.slice(0,4),optionDots:true,ex:'Kartlardaki nokta sayıları arasındaki farkları karşılaştır.'};
   }else if(c===2){
    const t=s%10,v=Math.floor(s/10);let vals;
@@ -129,6 +136,10 @@ function build(){
    }
   }
   bank.push({id:id++,d,c,...q});
+ }
+ for(const q of bank){
+  if(!Array.isArray(q.opts)||q.opts.length!==4||new Set(q.opts.map(String)).size!==4||!q.opts.some(x=>String(x)===String(q.a)))throw new Error('Geçersiz şık: soru '+q.id);
+  if((q.optionDots||q.optionSides)&&q.opts.some(x=>!Number.isInteger(Number(x))))throw new Error('Görsel şık sayısal değil: soru '+q.id);
  }
 }
 function show(name){['home','quiz','result','history'].forEach(x=>$(x).classList.toggle('hidden',x!==name))}

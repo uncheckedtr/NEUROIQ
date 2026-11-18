@@ -10,10 +10,16 @@ function polygonMarkup(sides,size=58){
  return '<svg class="geo-shape" width="'+size+'" height="'+size+'" viewBox="0 0 64 64" aria-label="'+sides+' köşeli şekil"><polygon points="'+pts.join(' ')+'" fill="rgba(88,166,255,.10)" stroke="#8fc5ff" stroke-width="2.8" stroke-linejoin="round"/></svg>';
 }
 function optionMarkup(q,x,i){
- const letter=String.fromCharCode(65+i);
- if(q.optionSides)return '<button class="option visual-option" onclick="choose('+i+')"><b>'+letter+'</b><span>'+polygonMarkup(Number(x),48)+'</span></button>';
- if(q.optionDots)return '<button class="option visual-option" onclick="choose('+i+')"><b>'+letter+'</b><span>'+dotsMarkup(Number(x),50)+'</span></button>';
- return '<button class="option" onclick="choose('+i+')"><b>'+letter+'</b> '+x+'</button>';
+ const letter=String.fromCharCode(65+i),value=String(x??'').trim(),number=Number(value);
+ if(q.optionSides){
+  const shape=Number.isInteger(number)&&number>=3&&number<=12?polygonMarkup(number,48):'<span class="visual-option-error">Şekil yüklenemedi</span>';
+  return '<button class="option visual-option" onclick="choose('+i+')"><b>'+letter+'</b><span class="visual-choice-content">'+shape+'<small>'+value+' köşe</small></span></button>';
+ }
+ if(q.optionDots){
+  const dots=Number.isInteger(number)&&number>=1&&number<=12?dotsMarkup(number,50):'<span class="visual-option-error">Noktalar yüklenemedi</span>';
+  return '<button class="option visual-option" onclick="choose('+i+')"><b>'+letter+'</b><span class="visual-choice-content">'+dots+'<small>'+value+' nokta</small></span></button>';
+ }
+ return '<button class="option" onclick="choose('+i+')"><b>'+letter+'</b> '+value+'</button>';
 }
 const mix=a=>{a=[...a];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 function build(){

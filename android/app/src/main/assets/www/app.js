@@ -184,7 +184,7 @@ function render(){
  }else if(q.visualCounts){
   $('visual').innerHTML='<div class="shape-sequence">'+q.visualCounts.map((n,i)=>'<div class="shape-step">'+dotsMarkup(n,54)+'<small>'+(i+1)+'.</small></div>').join('<span class="shape-arrow">→</span>')+'<span class="shape-missing">?</span></div>';
  }else{$('visual').textContent=q.v}
- $('options').className=q.optionDots?'dot-options-grid':(q.optionSides?'shape-options-grid':'');$('options').innerHTML=q.opts.map((x,i)=>optionMarkup(q,x,i)).join('');$('next').disabled=true;$('next').textContent=idx===19?'TESTİ BİTİR':'CEVABI ONAYLA';
+ $('options').className=q.optionDots?'dot-options-grid':'';$('options').innerHTML=q.opts.map((x,i)=>optionMarkup(q,x,i)).join('');$('next').disabled=true;$('next').textContent=idx===19?'TESTİ BİTİR':'CEVABI ONAYLA';
 }
 function choose(i){if(chosen!==-1)return;if(!test[idx]||!test[idx].opts||i<0||i>=test[idx].opts.length)return;chosen=i;document.querySelectorAll('.option').forEach((b,j)=>{b.classList.toggle('selected',i===j);b.disabled=true});next()}
 function next(){if(chosen<0)return;let q=test[idx],ok=q.opts[chosen]===q.a;answers.push({c:q.c,ok});let seen=new Set(JSON.parse(localStorage.getItem('nq-seen-v3')||'[]'));seen.add(q.id);localStorage.setItem('nq-seen-v3',JSON.stringify([...seen]));if(mode==='adaptive'){level=Math.max(2,Math.min(5,level+(ok?1:-1)));if(idx+1<20)test.push(questionPicker((idx+1)%5,level))}idx++;if(idx===20)finish();else render()}
